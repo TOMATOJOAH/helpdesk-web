@@ -489,10 +489,9 @@
         </div>
         <div class="flex-1 min-w-0">
             <h4 class="text-xs font-bold text-rose-300 flex items-center gap-1.5">
-                <span>신규 장애/요청 접수 알림</span>
-                <span class="text-[10px] bg-rose-500/30 text-rose-200 px-1.5 py-0.5 rounded">NEW</span>
+                <span>전산 장애/요청 동기화 알림</span>
             </h4>
-            <p id="toastMessage" class="text-xs text-slate-200 mt-1 leading-snug line-clamp-2">새로운 접수 건이 대기열에 등록되었습니다.</p>
+            <p id="toastMessage" class="text-xs text-slate-200 mt-1 leading-snug line-clamp-2">데이터가 실시간으로 동기화되었습니다.</p>
         </div>
         <button onclick="hideToast()" class="text-slate-400 hover:text-white pointer-events-auto">
             <i data-lucide="x" class="w-4 h-4"></i>
@@ -525,17 +524,15 @@
         let supabaseClient = null;
         let chartInstances = {};
 
-    
-
         // 하드코딩된 Supabase 연결 정보
-        const SUPABASE_URL = 'https://bzfoeikvctibsttobtyp.supabase.co'; // 복사한 URL
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6Zm9laWt2Y3RpYnN0dG9idHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4NjcwMDksImV4cCI6MjEwNTQ0MzAwOX0.VX0uD1Rqo7YsI1AnvvD09NZwiYszyP_5WXSevaum20s'; // 복사한 anon public key 전체
+        const SUPABASE_URL = 'https://bzfoeikvctibsttobtyp.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6Zm9laWt2Y3RpYnN0dG9idHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4NjcwMDksImV4cCI6MjEwNTQ0MzAwOX0.VX0uD1Rqo7YsI1AnvvD09NZwiYszyP_5WXSevaum20s';
 
         // Initialize App on DOM Ready
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
             initSupabaseClient();
-            loadInitialTickets();
+            await loadInitialTickets();
             renderUserQueue();
             updateStatsKpisAndCharts();
         });
@@ -544,7 +541,6 @@
         function initSupabaseClient() {
             if (window.supabase) {
                 try {
-                    // 사이트 로드 시 자동으로 클라우드 DB 연결
                     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                     listenSupabaseRealtime();
                     console.log("Supabase 클라우드 데이터베이스에 자동 연결되었습니다.");
@@ -554,16 +550,52 @@
             }
         }
 
-        function loadInitialTickets() {
+        // 초기 데이터 로드 (Supabase 클라우드 DB 연동 필수화)
+        async function loadInitialTickets() {
+            if (supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('tickets')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        // Supabase 컬럼명을 기존 웹사이트 구조에 맞게 매핑
+                        tickets = data.map(item => ({
+                            id: item.id,
+                            department: item.department,
+                            name: item.name,
+                            category: item.category,
+                            issue: item.issue_text || '(상세 사유 미기재)',
+                            status: item.status || '접수완료',
+                            assignee: item.assignee || '',
+                            adminMemo: item.admin_memo || '',
+                            createdAt: item.created_at,
+                            completedAt: item.completed_at || null
+                        }));
+                        sortTickets();
+                        return; // DB에서 성공적으로 가져왔으면 종료
+                    } else if (data && data.length === 0) {
+                        tickets = []; // DB가 비어있으면 초기화
+                        return;
+                    }
+                } catch (err) {
+                    console.warn("Supabase 데이터 조회 실패, 로컬 캐시 사용:", err.message);
+                }
+            }
+
+            // Supabase 연결 전이거나 데이터가 없을 때의 폴백(초기 모의 데이터)
             const cached = localStorage.getItem('KH_HELPDESK_TICKETS');
             if (cached) {
                 try {
                     tickets = JSON.parse(cached);
                 } catch (e) {
-                    tickets = [...INITIAL_MOCK_DATA];
+                    tickets = [];
                 }
             } else {
-                tickets = [...INITIAL_MOCK_DATA];
+                tickets = [];
                 persistTicketsLocally();
             }
             sortTickets();
@@ -604,7 +636,7 @@
             const department = document.getElementById('inputDepartment').value.trim();
             const name = document.getElementById('inputName').value.trim();
             const category = document.getElementById('inputCategory').value;
-            const issue = document.getElementById('inputIssue').value.trim(); // 사유는 필수 아님 (빈 문자열 허용)
+            const issue = document.getElementById('inputIssue').value.trim();
 
             if (!department || !name || !category) {
                 alert('소속 부서, 신청자 이름, 요청 항목은 필수 입력값입니다.');
@@ -624,13 +656,12 @@
                 completedAt: null
             };
 
-            // 만약 동일 항목을 처리 중인 전산 파트원이 있다면 자동 추천 배정
             const existingWorker = tickets.find(t => t.category === category && t.status === '처리중' && t.assignee);
             if (existingWorker) {
                 newTicket.assignee = existingWorker.assignee;
             }
 
-            // Cloud or Local Insert
+            // Cloud Insert
             if (supabaseClient) {
                 try {
                     const { data, error } = await supabaseClient
@@ -645,34 +676,25 @@
                         }]);
                     if (error) throw error;
                 } catch (err) {
-                    console.warn("Supabase insert error, falling back locally:", err.message);
+                    console.warn("Supabase insert error:", err.message);
                 }
             }
-
-            tickets.unshift(newTicket);
-            sortTickets();
-            persistTicketsLocally();
 
             // 폼 리셋
             document.getElementById('ticketSubmitForm').reset();
             document.getElementById('categoryUrgentNotice').classList.add('hidden');
 
-            renderUserQueue();
-            if (isAdminLoggedIn) {
-                applyAdminSearch();
-                updateStatsKpisAndCharts();
-            }
-
-            // 실시간 토스트 알림 호출
             showRealtimeToast(`[${newTicket.department}] ${newTicket.name}님의 [${newTicket.category}] 접수가 완료되었습니다.`);
+            
+            // 등록 직후 DB에서 최신 상태를 다시 불러옴
+            await refreshTicketsData();
         }
 
-        // 사용자 접수 대기열 렌더링 (사유는 가려지고 이름, 부서, 항목, 긴급도, 처리여부 노출)
+        // 사용자 접수 대기열 렌더링
         function renderUserQueue() {
             const container = document.getElementById('userQueueContainer');
             const countBadge = document.getElementById('queueCountBadge');
 
-            // 처리완료 건 제외한 활성 큐
             const activeTickets = tickets.filter(t => t.status !== '처리완료');
             countBadge.textContent = `${activeTickets.length}건`;
 
@@ -691,7 +713,6 @@
                 const prio = CATEGORY_PRIORITIES[ticket.category] || { level: '일반', color: 'slate' };
                 const isUrgent = prio.level === '긴급';
 
-                // Status Badge Color
                 let statusBadge = `bg-amber-50 text-amber-700 border-amber-200`;
                 if (ticket.status === '처리중') statusBadge = `bg-blue-50 text-blue-700 border-blue-200`;
                 if (ticket.status === '처리완료') statusBadge = `bg-emerald-50 text-emerald-700 border-emerald-200`;
@@ -767,7 +788,6 @@
             const u = document.getElementById('adminUsername').value.trim();
             const p = document.getElementById('adminPassword').value.trim();
 
-            // 지정된 인증 정보: sysadmin / sysadmin232
             if (u === 'sysadmin' && p === 'sysadmin232') {
                 isAdminLoggedIn = true;
                 closeLoginModal();
@@ -878,13 +898,11 @@
                 const prio = CATEGORY_PRIORITIES[ticket.category] || { level: '일반', weight: 99 };
                 const isUrgent = prio.level === '긴급';
 
-                // Assignee Options
                 const assigneeOptions = [
                     `<option value="" ${!ticket.assignee ? 'selected' : ''}>미지정</option>`,
                     ...IT_STAFF_LIST.map(staff => `<option value="${staff}" ${ticket.assignee === staff ? 'selected' : ''}>${staff}</option>`)
                 ].join('');
 
-                // Status Options
                 const statusOptions = STATUS_OPTIONS.map(st => 
                     `<option value="${st}" ${ticket.status === st ? 'selected' : ''}>${st}</option>`
                 ).join('');
@@ -974,11 +992,6 @@
                 item.completedAt = null;
             }
 
-            persistTicketsLocally();
-            renderUserQueue();
-            applyAdminSearch();
-            updateStatsKpisAndCharts();
-
             if (supabaseClient) {
                 try {
                     await supabaseClient
@@ -989,19 +1002,14 @@
                     console.warn(e);
                 }
             }
-
             showRealtimeToast(`[#TK-${ticketId.toString().slice(-4)}] 상태가 '${newStatus}'(으)로 변경되었습니다.`);
+            await refreshTicketsData();
         }
 
         // 담당자 배정 핸들러
         async function handleAssigneeChange(ticketId, newAssignee) {
             const item = tickets.find(t => t.id === ticketId);
             if (!item) return;
-
-            item.assignee = newAssignee;
-            persistTicketsLocally();
-            renderUserQueue();
-            applyAdminSearch();
 
             if (supabaseClient) {
                 try {
@@ -1013,8 +1021,8 @@
                     console.warn(e);
                 }
             }
-
             showRealtimeToast(`[#TK-${ticketId.toString().slice(-4)}] 담당자가 '${newAssignee || '미배정'}'(으)로 설정되었습니다.`);
+            await refreshTicketsData();
         }
 
         // 메모 인라인 저장 핸들러
@@ -1022,12 +1030,6 @@
             const inputEl = document.getElementById(`memoInput_${ticketId}`);
             if (!inputEl) return;
             const newMemo = inputEl.value.trim();
-
-            const item = tickets.find(t => t.id === ticketId);
-            if (!item) return;
-
-            item.adminMemo = newMemo;
-            persistTicketsLocally();
 
             if (supabaseClient) {
                 try {
@@ -1039,21 +1041,30 @@
                     console.warn(e);
                 }
             }
-
             showRealtimeToast(`티켓 메모가 성공적으로 저장되었습니다.`);
+            await refreshTicketsData();
+        }
+
+        // 새로고침 시 Supabase 서버에서 최신 데이터를 다시 불러오도록 개선
+        async function refreshTicketsData() {
+            await loadInitialTickets();
+            sortTickets();
+            renderUserQueue();
+            if (isAdminLoggedIn) {
+                applyAdminSearch();
+                updateStatsKpisAndCharts();
+            }
         }
 
         // =========================================================================
         // Chart.js 대시보드 시각화 & KPI 통계
         // =========================================================================
         function updateStatsKpisAndCharts() {
-            // KPI Calculations
             const total = tickets.length;
             const urgentCount = tickets.filter(t => CATEGORY_PRIORITIES[t.category]?.level === '긴급').length;
             const completedCount = tickets.filter(t => t.status === '처리완료').length;
             const rate = total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
-            // 평균 처리 소요 시간 (시간 단위)
             let totalHours = 0;
             let countValidCompleted = 0;
             tickets.forEach(t => {
@@ -1072,7 +1083,6 @@
             document.getElementById('kpiCompletionRate').textContent = `${rate}%`;
             document.getElementById('kpiAvgProcessingTime').textContent = avgHours;
 
-            // Chart Renders
             renderCategoryChart();
             renderDepartmentChart();
             renderMonthlyTrendChart();
@@ -1160,7 +1170,6 @@
             const canvas = document.getElementById('monthlyTrendChart');
             if (!canvas) return;
 
-            // Group by Month (YYYY-MM)
             const months = {};
             tickets.forEach(t => {
                 const m = t.createdAt.slice(0, 7);
@@ -1168,7 +1177,6 @@
             });
 
             const sortedMonths = Object.keys(months).sort();
-            // ensure at least 2 points
             if (sortedMonths.length === 1) {
                 const prev = new Date(sortedMonths[0] + "-01");
                 prev.setMonth(prev.getMonth() - 1);
@@ -1229,16 +1237,6 @@
             toast.classList.remove('translate-y-0', 'opacity-100');
         }
 
-        function refreshTicketsData() {
-            sortTickets();
-            renderUserQueue();
-            if (isAdminLoggedIn) {
-                applyAdminSearch();
-                updateStatsKpisAndCharts();
-            }
-            showRealtimeToast('최신 접수 대기열 데이터를 성공적으로 동기화하였습니다.');
-        }
-
         function formatRelativeTime(dateStr) {
             const now = new Date();
             const past = new Date(dateStr);
@@ -1261,21 +1259,21 @@
         }
 
         // =========================================================================
-        // 실시간 채널 구독
+        // 실시간 채널 구독 (데이터 변경 시 모든 기기 자동 업데이트)
         // =========================================================================
         function listenSupabaseRealtime() {
             if (!supabaseClient) return;
             try {
                 supabaseClient
-                    .channel('public:tickets')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tickets' }, payload => {
-                        const row = payload.new;
-                        showRealtimeToast(`[원격 실시간] ${row.name}님의 신규 접수가 등록되었습니다.`);
-                        refreshTicketsData();
+                    .channel('public:tickets_sync')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, async payload => {
+                        console.log("DB 변경 감지:", payload);
+                        await refreshTicketsData();
+                        showRealtimeToast('전산 장애 대기열 변동 사항이 실시간으로 동기화되었습니다.');
                     })
                     .subscribe();
             } catch (e) {
-                console.warn('Realtime subscription not supported or failed:', e);
+                console.warn('Realtime subscription failed:', e);
             }
         }
     </script>
