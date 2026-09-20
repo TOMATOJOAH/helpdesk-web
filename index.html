@@ -75,21 +75,14 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                        IT 사내 헬프데스크
+                        KH ENERGY 전산 헬프데스크
                         <span class="text-xs font-normal text-blue-600 bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-full">v2.5 Live</span>
                     </h1>
-                    <p class="text-xs text-slate-500 hidden sm:block">신속한 전산 지원 및 스마트 티켓 큐 시스템</p>
+                    <p class="text-xs text-slate-500 hidden sm:block">신속한 전산 지원 및 접수 시스템</p>
                 </div>
             </div>
 
             <div class="flex items-center space-x-3">
-                <!-- Supabase Cloud Connection Status Badge / Config Button -->
-                <button id="dbConfigBtn" onclick="openDbConfigModal()" class="flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-lg transition-colors" title="Supabase 클라우드 DB 연결 설정">
-                    <span id="dbStatusDot" class="w-2 h-2 rounded-full bg-amber-500"></span>
-                    <span id="dbStatusText" class="font-medium hidden md:inline">로컬 모드</span>
-                    <i data-lucide="database" class="w-3.5 h-3.5 ml-0.5"></i>
-                </button>
-
                 <!-- Admin Auth Toggle -->
                 <div id="authControls">
                     <button id="loginModalBtn" onclick="openLoginModal()" class="flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium text-slate-700 hover:text-slate-900 bg-white border border-slate-300 hover:border-slate-400 rounded-lg shadow-sm transition-all hover:bg-slate-50 active:scale-95">
@@ -123,9 +116,9 @@
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium bg-white/20 text-white backdrop-blur mb-3">
                         <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 전산 시스템 긴급도별 우선순위 분산 처리 중
                     </span>
-                    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">IT 서비스 및 전산 장애 요청</h2>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">전산 장애 접수 사이트</h2>
                     <p class="mt-2 text-sm sm:text-base text-blue-100 leading-relaxed">
-                        장애 및 요청 사항을 접수해주시면 긴급도 기준(<span class="font-semibold text-amber-200">bos 시스템오류 > 공차 발생 > 자가소비 단가 변경</span>)에 맞춰 전산팀 담당자에게 즉시 큐잉됩니다.
+                        장애 및 요청 사항을 접수해주시면 긴급도 기준(<span class="font-semibold text-amber-200">bos 시스템오류 > 공차 발생 > 자가소비 단가 변경</span>)에 맞춰 전산팀 담당자가 확인 후 연락드립니다.
                     </p>
                 </div>
                 <div class="absolute right-0 bottom-0 translate-x-8 translate-y-8 opacity-10 pointer-events-none">
@@ -221,7 +214,7 @@
                         <button type="submit" id="submitBtn"
                             class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 shadow-lg shadow-blue-600/25 transition-all hover:scale-[1.01] active:scale-[0.99]">
                             <i data-lucide="send" class="w-4 h-4"></i>
-                            <span>전산팀에 접수하기</span>
+                            <span>헬프데스크 접수하기</span>
                         </button>
                     </form>
                 </div>
@@ -264,7 +257,7 @@
                 <div>
                     <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
                         <i data-lucide="shield-check" class="w-6 h-6 text-blue-600"></i>
-                        IT 운영 컨트롤 패널 & 실시간 티켓 관리
+                        전산팀 운영 컨트롤 패널 & 실시간 접수 관리
                     </h2>
                     <p class="text-xs text-slate-500 mt-0.5">담당자 지정, 인라인 상태 변경, 인라인 메모 작성 및 집계 분석 대시보드</p>
                 </div>
@@ -489,38 +482,6 @@
         </div>
     </div>
 
-    <!-- Supabase 연동 설정 모달 (URL 및 Anon Key) -->
-    <div id="dbConfigModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div class="flex items-center gap-2 text-slate-800">
-                    <i data-lucide="database" class="w-5 h-5 text-blue-600"></i>
-                    <h3 class="text-base font-bold">Supabase 클라우드 DB 연동 설정</h3>
-                </div>
-                <button onclick="closeDbConfigModal()" class="text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="mt-4 space-y-4">
-                <p class="text-xs text-slate-500 leading-relaxed">
-                    Supabase Project Settings > API 에서 확인하신 <strong>Project URL</strong>과 <strong>anon public key</strong>를 입력하시면 클라우드 원격 DB와 실시간 동기화됩니다. (비워둘 시 안전한 내장 로컬 스토리지로 가동됩니다.)
-                </p>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Project URL</label>
-                    <input type="text" id="cfgSupabaseUrl" placeholder="https://xxxxxx.supabase.co" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Anon Public Key</label>
-                    <input type="text" id="cfgSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
-                </div>
-                <div class="flex items-center justify-end gap-2 pt-2">
-                    <button onclick="clearDbConfig()" class="text-xs font-medium text-slate-500 hover:text-rose-600 px-3 py-2">설정 해제 (로컬 모드)</button>
-                    <button onclick="saveDbConfig()" class="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg">저장 및 연결</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- 하단 실시간 알림 토스트 (신규 접수 발생 시 팝업) -->
     <div id="realtimeToast" class="fixed bottom-6 right-6 z-50 max-w-sm w-full bg-slate-900 text-white rounded-2xl shadow-2xl p-4 border border-slate-700 flex items-start gap-3.5 transform translate-y-32 opacity-0 transition-all duration-300 pointer-events-none">
         <div class="w-8 h-8 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0 mt-0.5 animate-pulse">
@@ -564,69 +525,11 @@
         let supabaseClient = null;
         let chartInstances = {};
 
-        // Mock Initial Seed Data (최초 기동 시 실시간 테스트용)
-        const INITIAL_MOCK_DATA = [
-            {
-                id: 101,
-                department: '수도권영업팀',
-                name: '이지은 대리',
-                category: 'bos 시스템오류',
-                issue: 'BOS 로그인 후 매출 입력창 진입 시 화이트스크린 에러 500이 지속 발생합니다.',
-                status: '처리중',
-                assignee: '전태호 매니저',
-                adminMemo: 'DB 세션 락 확인 완료. 인덱스 리빌드 진행 중',
-                createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-                completedAt: null
-            },
-            {
-                id: 102,
-                department: '물류운영팀',
-                name: '박준혁 과장',
-                category: '공차 발생',
-                issue: '2센터 4번 도크 상차 지연으로 인한 배차 공차 긴급 재조정 요청의 건',
-                status: '접수완료',
-                assignee: '김수환 사원',
-                adminMemo: '물류 매니저와 유선 확인 완료',
-                createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-                completedAt: null
-            },
-            {
-                id: 103,
-                department: '에너지사업팀',
-                name: '최민성 차장',
-                category: '자가소비 단가 변경',
-                issue: '신규 고시 단가 반영 기준 3분기 요율표 수정 필요',
-                status: '처리완료',
-                assignee: '전우진 선임연구원',
-                adminMemo: 'SAP 마스터 데이터 동기화 완료 후 마감 처리함',
-                createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-                completedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString()
-            },
-            {
-                id: 104,
-                department: '재무팀',
-                name: '한수정 주임',
-                category: '신한55정산금 매출액조정',
-                issue: '전월 카드사 수수료 공제 차액 조정 전표 작성건',
-                status: '처리중',
-                assignee: '전우진 선임연구원',
-                adminMemo: '',
-                createdAt: new Date(Date.now() - 1000 * 60 * 85).toISOString(),
-                completedAt: null
-            },
-            {
-                id: 105,
-                department: '인사총무팀',
-                name: '김현우 사원',
-                category: '오피스 인증 및 재설치',
-                issue: '신규 입사자 노트북 MS Office 라이선스 만료 팝업',
-                status: '접수완료',
-                assignee: '',
-                adminMemo: '오피스365 계정 활성화 대기',
-                createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
-                completedAt: null
-            }
-        ];
+    
+
+        // 하드코딩된 Supabase 연결 정보
+        const SUPABASE_URL = 'https://bzfoeikvctibsttobtyp.supabase.co'; // 복사한 URL
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6Zm9laWt2Y3RpYnN0dG9idHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4NjcwMDksImV4cCI6MjEwNTQ0MzAwOX0.VX0uD1Rqo7YsI1AnvvD09NZwiYszyP_5WXSevaum20s'; // 복사한 anon public key 전체
 
         // Initialize App on DOM Ready
         window.addEventListener('DOMContentLoaded', () => {
@@ -637,36 +540,18 @@
             updateStatsKpisAndCharts();
         });
 
-        // Initialize Supabase Driver or Local Storage Fallback
+        // Initialize Supabase Driver automatically
         function initSupabaseClient() {
-            const storedUrl = localStorage.getItem('HELP_DESK_SUPABASE_URL');
-            const storedKey = localStorage.getItem('HELP_DESK_SUPABASE_KEY');
-
-            const statusDot = document.getElementById('dbStatusDot');
-            const statusText = document.getElementById('dbStatusText');
-
-            if (storedUrl && storedKey && window.supabase) {
+            if (window.supabase) {
                 try {
-                    supabaseClient = window.supabase.createClient(storedUrl, storedKey);
-                    statusDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-                    statusText.textContent = "Supabase 연동됨";
-                    document.getElementById('cfgSupabaseUrl').value = storedUrl;
-                    document.getElementById('cfgSupabaseKey').value = storedKey;
+                    // 사이트 로드 시 자동으로 클라우드 DB 연결
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                     listenSupabaseRealtime();
+                    console.log("Supabase 클라우드 데이터베이스에 자동 연결되었습니다.");
                 } catch (err) {
-                    console.warn("Supabase init failed, fallback to local mode:", err);
-                    setLocalDbBadge();
+                    console.warn("Supabase 연결 실패:", err);
                 }
-            } else {
-                setLocalDbBadge();
             }
-        }
-
-        function setLocalDbBadge() {
-            const statusDot = document.getElementById('dbStatusDot');
-            const statusText = document.getElementById('dbStatusText');
-            statusDot.className = "w-2 h-2 rounded-full bg-amber-500";
-            statusText.textContent = "로컬/데모 모드";
         }
 
         function loadInitialTickets() {
@@ -1376,44 +1261,8 @@
         }
 
         // =========================================================================
-        // Supabase DB 연결 모달 및 실시간 채널 구독
+        // 실시간 채널 구독
         // =========================================================================
-        function openDbConfigModal() {
-            document.getElementById('dbConfigModal').classList.remove('hidden');
-            document.getElementById('dbConfigModal').classList.add('flex');
-        }
-
-        function closeDbConfigModal() {
-            document.getElementById('dbConfigModal').classList.add('hidden');
-            document.getElementById('dbConfigModal').classList.remove('flex');
-        }
-
-        function saveDbConfig() {
-            const url = document.getElementById('cfgSupabaseUrl').value.trim();
-            const key = document.getElementById('cfgSupabaseKey').value.trim();
-
-            if (!url || !key) {
-                alert('Supabase URL과 Anon Key를 모두 입력해 주세요.');
-                return;
-            }
-
-            localStorage.setItem('HELP_DESK_SUPABASE_URL', url);
-            localStorage.setItem('HELP_DESK_SUPABASE_KEY', key);
-
-            initSupabaseClient();
-            closeDbConfigModal();
-            showRealtimeToast('Supabase 클라우드 데이터베이스 설정이 저장되었습니다.');
-        }
-
-        function clearDbConfig() {
-            localStorage.removeItem('HELP_DESK_SUPABASE_URL');
-            localStorage.removeItem('HELP_DESK_SUPABASE_KEY');
-            supabaseClient = null;
-            setLocalDbBadge();
-            closeDbConfigModal();
-            showRealtimeToast('로컬/데모 스토리지 모드로 전환되었습니다.');
-        }
-
         function listenSupabaseRealtime() {
             if (!supabaseClient) return;
             try {
@@ -1421,7 +1270,7 @@
                     .channel('public:tickets')
                     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tickets' }, payload => {
                         const row = payload.new;
-                        showRealtimeToast(`[원격 실시간] ${row.name}님의 신규 티켓이 등록되었습니다.`);
+                        showRealtimeToast(`[원격 실시간] ${row.name}님의 신규 접수가 등록되었습니다.`);
                         refreshTicketsData();
                     })
                     .subscribe();
