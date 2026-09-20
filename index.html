@@ -540,6 +540,18 @@
         let supabaseClient = null;
         let chartInstances = {};
 
+        // XSS 방어용 특수문자 이스케이프 함수
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                 .toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
         // 하드코딩된 Supabase 연결 정보
         const SUPABASE_URL = 'https://bzfoeikvctibsttobtyp.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6Zm9laWt2Y3RpYnN0dG9idHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4NjcwMDksImV4cCI6MjEwNTQ0MzAwOX0.VX0uD1Rqo7YsI1AnvvD09NZwiYszyP_5WXSevaum20s';
@@ -729,6 +741,7 @@
         }
 
         // 사용자 접수 대기열 렌더링
+    
         function renderUserQueue() {
             const container = document.getElementById('userQueueContainer');
             const countBadge = document.getElementById('queueCountBadge');
@@ -746,6 +759,61 @@
                 lucide.createIcons();
                 return;
             }
+
+            container.innerHTML = activeTickets.map((ticket, index) => {
+                const prio = CATEGORY_PRIORITIES[ticket.category] || { level: '일반', color: 'slate' };
+                const isUrgent = prio.level === '긴급';
+
+                let statusBadge = `bg-amber-50 text-amber-700 border-amber-200`;
+                if (ticket.status === '처리중') statusBadge = `bg-blue-50 text-blue-700 border-blue-200`;
+                if (ticket.status === '처리완료') statusBadge = `bg-emerald-50 text-emerald-700 border-emerald-200`;
+
+                return `
+                    <div class="py-4 flex items-center justify-between gap-4 transition-all hover:bg-slate-50/80 px-2 rounded-xl">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <!-- Priority Indicator Badge -->
+                            <div class="flex-shrink-0">
+                                ${isUrgent 
+                                    ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200 shadow-sm animate-pulse">
+                                         <i data-lucide="flame" class="w-3.5 h-3.5 text-rose-600"></i> 긴급
+                                       </span>`
+                                    : `<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                         일반
+                                       </span>`
+                                }
+                            </div>
+                            <!-- Meta: 이름, 부서, 항목 (사유 숨김 적용) -->
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <h4 class="text-sm font-bold text-slate-900 truncate">${escapeHtml(ticket.name)}</h4>
+                                    <span class="text-xs text-slate-500 font-medium truncate">(${escapeHtml(ticket.department)})</span>
+                                </div>
+                                <div class="text-xs text-slate-600 mt-0.5 flex items-center gap-2">
+                                    <span class="font-medium ${isUrgent ? 'text-rose-700 font-semibold' : 'text-slate-700'}">${escapeHtml(ticket.category)}</span>
+                                    <span class="text-slate-300">•</span>
+                                    <span class="text-[11px] text-slate-400">${formatRelativeTime(ticket.createdAt)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status & Assignee Meta -->
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                            ${ticket.assignee ? `
+                                <div class="hidden sm:flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
+                                    <i data-lucide="user-check" class="w-3 h-3 text-slate-400"></i>
+                                    <span>${escapeHtml(ticket.assignee)}</span>
+                                </div>
+                            ` : ''}
+                            <span class="text-xs px-2.5 py-1 rounded-lg border font-semibold ${statusBadge}">
+                                ${escapeHtml(ticket.status)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
 
             container.innerHTML = activeTickets.map((ticket, index) => {
                 const prio = CATEGORY_PRIORITIES[ticket.category] || { level: '일반', color: 'slate' };
@@ -956,11 +1024,11 @@
 
                 const assigneeOptions = [
                     `<option value="" ${!ticket.assignee ? 'selected' : ''}>미지정</option>`,
-                    ...IT_STAFF_LIST.map(staff => `<option value="${staff}" ${ticket.assignee === staff ? 'selected' : ''}>${staff}</option>`)
+                    ...IT_STAFF_LIST.map(staff => `<option value="${escapeHtml(staff)}" ${ticket.assignee === staff ? 'selected' : ''}>${escapeHtml(staff)}</option>`)
                 ].join('');
 
                 const statusOptions = STATUS_OPTIONS.map(st => 
-                    `<option value="${st}" ${ticket.status === st ? 'selected' : ''}>${st}</option>`
+                    `<option value="${escapeHtml(st)}" ${ticket.status === st ? 'selected' : ''}>${escapeHtml(st)}</option>`
                 ).join('');
 
                 return `
@@ -973,24 +1041,22 @@
                             }
                         </td>
 
-                        <!-- 신청자/부서 -->
+                        <!-- 신청자/부서/연락처 -->
                         <td class="py-3 px-4">
-                            <div class="font-bold text-slate-900">${ticket.name}</div>
-                            <div class="text-[11px] text-slate-500">${ticket.department}</div>
-                            ${ticket.contact ? `<div class="text-[11px] text-blue-600 font-medium mt-0.5"><i data-lucide="phone" class="w-3 h-3 inline-block mr-0.5 align-text-bottom"></i>${ticket.contact}</div>` : ''}
+                            <div class="font-bold text-slate-900">${escapeHtml(ticket.name)}</div>
+                            <div class="text-[11px] text-slate-500">${escapeHtml(ticket.department)}</div>
+                            ${ticket.contact ? `<div class="text-[11px] text-blue-600 font-medium mt-0.5"><i data-lucide="phone" class="w-3 h-3 inline-block mr-0.5 align-text-bottom"></i>${escapeHtml(ticket.contact)}</div>` : ''}
                         </td>
 
                         <!-- 항목 -->
                         <td class="py-3 px-4">
-                            <span class="font-semibold ${isUrgent ? 'text-rose-700' : 'text-slate-800'}">${ticket.category}</span>
+                            <span class="font-semibold ${isUrgent ? 'text-rose-700' : 'text-slate-800'}">${escapeHtml(ticket.category)}</span>
                             <div class="text-[10px] text-slate-400 font-mono">#TK-${ticket.id.toString().slice(-4)}</div>
                         </td>
 
-                        <!-- 접수 사유 (관리자 화면에서는 상세 노출) -->
+                        <!-- 접수 사유 (상세) -->
                         <td class="py-3 px-4 max-w-xs">
-                            <div class="p-2 bg-slate-50 border border-slate-200/70 rounded-lg text-slate-700 text-xs leading-relaxed max-h-20 overflow-y-auto whitespace-pre-wrap">
-                                ${ticket.issue ? ticket.issue : '<span class="text-slate-400 italic">(사유 없음)</span>'}
-                            </div>
+                            <div class="p-2 bg-slate-50 border border-slate-200/70 rounded-lg text-slate-700 text-xs leading-relaxed max-h-20 overflow-y-auto whitespace-pre-wrap">${ticket.issue ? escapeHtml(ticket.issue) : '<span class="text-slate-400 italic">(사유 없음)</span>'}</div>
                         </td>
 
                         <!-- 접수 일시 -->
@@ -1018,18 +1084,16 @@
                             </select>
                         </td>
 
-                        
-                       <!-- 인라인 메모 작성 및 즉시 저장 & 삭제 버튼 -->
+                        <!-- 인라인 메모 작성 및 삭제 -->
                         <td class="py-3 px-4">
                             <div class="flex items-center gap-1.5">
-                                <input type="text" id="memoInput_${ticket.id}" value="${ticket.adminMemo || ''}" placeholder="메모 입력..."
+                                <input type="text" id="memoInput_${ticket.id}" value="${escapeHtml(ticket.adminMemo || '')}" placeholder="메모 입력..."
                                     onkeydown="if(event.key==='Enter') saveAdminMemo(${ticket.id})"
                                     class="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-300 focus:bg-white rounded-lg outline-none focus:border-blue-500">
                                 <button onclick="saveAdminMemo(${ticket.id})" title="메모 저장"
                                     class="p-1.5 text-xs text-white bg-slate-700 hover:bg-slate-900 rounded-lg flex-shrink-0 transition-all">
                                     <i data-lucide="save" class="w-3.5 h-3.5"></i>
                                 </button>
-                                <!-- 삭제 버튼 추가 -->
                                 <button onclick="deleteTicket(${ticket.id})" title="접수건 삭제"
                                     class="p-1.5 text-xs text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg flex-shrink-0 transition-all">
                                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
